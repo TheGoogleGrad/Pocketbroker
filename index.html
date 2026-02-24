@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="PocketBroker">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="manifest" href="pocketbroker.webmanifest">
-<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='80' fill='%230d1117'/><text x='256' y='230' text-anchor='middle' font-family='Arial Black,sans-serif' font-weight='900' font-size='108' fill='white'>Pocket</text><text x='256' y='340' text-anchor='middle' font-family='Arial Black,sans-serif' font-weight='900' font-size='108' fill='%234f8ef7'>Broker</text><rect x='80' y='370' width='352' height='3' rx='2' fill='%234f8ef7'/><rect x='80' y='370' width='352' height='3' rx='2' fill='%234f8ef7' filter='url(%23glow)'/><defs><filter id='glow'><feGaussianBlur stdDeviation='4' result='blur'/><feMerge><feMergeNode in='blur'/><feMergeNode in='SourceGraphic'/></feMerge></filter></defs></svg>">
+<link rel="apple-touch-icon" href="icon-192.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -1122,9 +1122,10 @@
 
 <!-- Share bar -->
 <div class="share-bar" style="flex-wrap:wrap;gap:8px;">
-  <button class="calc-btn" onclick="switchTab('results')" style="flex:1;min-width:120px;">→ Results</button>
-  <button class="share-btn" onclick="copySnapshot()" style="padding:14px 12px;font-size:11px;">⬡ Copy</button>
-  <button class="share-btn" onclick="exportExcel()" style="padding:14px 12px;font-size:11px;border-color:rgba(56,217,169,0.4);color:var(--accent2);">⬇ Excel</button>
+  <button class="calc-btn" onclick="switchTab('results')" style="flex:1;min-width:100px;">→ Results</button>
+  <button class="share-btn" onclick="copySnapshot()" style="padding:14px 10px;font-size:11px;">⬡ Copy</button>
+  <button class="share-btn" onclick="exportExcel()" style="padding:14px 10px;font-size:11px;border-color:rgba(56,217,169,0.4);color:var(--accent2);">⬇ XLS</button>
+  <button class="share-btn" onclick="exportPDF()" style="padding:14px 10px;font-size:11px;border-color:rgba(247,201,72,0.4);color:var(--accent3);">⬇ PDF</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1804,6 +1805,246 @@ function exportExcel() {
   const filename = (addr || 'deal').replace(/[^a-z0-9]/gi,'_') + '_PocketBroker.xlsx';
   XLSX.writeFile(wb, filename);
   showToast('✓ Excel downloaded!');
+}
+
+// ── EXPORT PDF ──
+function exportPDF() {
+  const addr = document.getElementById('prop-address').value || 'Property';
+  const city = document.getElementById('prop-city').value || '';
+  const zip = document.getElementById('prop-zip')?.value || '';
+  const state = document.getElementById('prop-state')?.value || '';
+  const yr = document.getElementById('prop-year').value || '';
+  const bldgSF = parseFloat(document.getElementById('prop-bldg-sf').value) || 0;
+  const landSF = parseFloat(document.getElementById('prop-land-sf').value) || 0;
+  const price = parseFloat(document.getElementById('prop-price').value.replace(/,/g,'')) || 0;
+  const vacancy = parseFloat(document.getElementById('vacancy-rate').value) || 5;
+  const laundry = parseFloat(document.getElementById('laundry-income').value) || 0;
+  const parking = parseFloat(document.getElementById('parking-income').value) || 0;
+  const downPct = parseFloat(document.getElementById('down-pct').value) || 25;
+  const intRate = parseFloat(document.getElementById('int-rate').value) || 6.5;
+  const amortYears = parseFloat(document.getElementById('amort-years').value) || 30;
+
+  const numUnits = units.length || 1;
+  const monthlyRent = units.reduce((s,u) => s+(parseFloat(u.rent)||0),0);
+  const otherIncome = laundry + parking;
+  const grossMonthly = monthlyRent + otherIncome;
+  const grossAnnual = grossMonthly * 12;
+  const vacancyLoss = grossAnnual * (vacancy/100);
+  const effectiveGross = grossAnnual - vacancyLoss;
+
+  let totalExpenses = 0;
+  const expenseLines = [];
+  defaultExpenses.forEach(e => {
+    if (!e.on) return;
+    let amt = 0;
+    if (e.type==='pct') amt = price*(e.value/100);
+    else if (e.type==='per_unit') amt = e.value*numUnits;
+    else if (e.type==='pct_income') amt = effectiveGross*(e.value/100);
+    else if (e.type==='per_month') amt = e.value*12;
+    else if (e.type==='flat') amt = e.value;
+    totalExpenses += amt;
+    expenseLines.push({name: e.name, value: amt});
+  });
+  customExpenses.forEach(e => {
+    totalExpenses += (e.value||0);
+    expenseLines.push({name: e.name, value: e.value||0});
+  });
+
+  const noi = effectiveGross - totalExpenses;
+  const capRate = price > 0 ? (noi/price)*100 : 0;
+  const grm = grossAnnual > 0 ? price/grossAnnual : 0;
+  const loanAmt = price*(1-downPct/100);
+  const downPayment = price*(downPct/100);
+  const r = intRate/100/12;
+  const n = amortYears*12;
+  const monthlyPayment = r>0 ? loanAmt*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1) : loanAmt/n;
+  const annualDebt = monthlyPayment*12;
+  const cashFlow = debtEnabled ? noi-annualDebt : null;
+  const dcr = (debtEnabled && annualDebt>0) ? noi/annualDebt : null;
+  const coc = (debtEnabled && downPayment>0) ? (cashFlow/downPayment)*100 : null;
+  const expRatio = effectiveGross > 0 ? (totalExpenses/effectiveGross)*100 : 0;
+
+  const f = n => n.toLocaleString('en-US',{maximumFractionDigits:0});
+  const fp = n => n != null ? n.toFixed(2)+'%' : '—';
+  const fd = n => n != null ? '$'+f(n) : '—';
+  const propName = [addr, city, state.toUpperCase(), zip].filter(Boolean).join(', ');
+  const today = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+
+  const rentRows = units.map((u,i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td>${u.type||'—'}</td>
+      <td>${fd(parseFloat(u.rent)||0)}</td>
+      <td style="color:#38d9a9;">${u.rent2 ? fd(parseFloat(u.rent2)) : '—'}</td>
+      <td>${fd((parseFloat(u.rent)||0)*12)}</td>
+    </tr>`).join('');
+
+  const expenseRows = expenseLines.map(e => `
+    <tr><td>${e.name}</td><td>${fd(e.value)}</td></tr>`).join('');
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>PocketBroker — ${propName}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Syne:wght@700;800&display=swap');
+  * { margin:0;padding:0;box-sizing:border-box; }
+  body { background:#0a0c10;color:#e8ecf4;font-family:'DM Sans',sans-serif;padding:32px;min-height:100vh; }
+  .header { display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:20px;border-bottom:1px solid #252b38; }
+  .logo { font-family:'Syne',sans-serif;font-weight:800;font-size:22px;letter-spacing:-0.5px; }
+  .logo span { color:#4f8ef7; }
+  .prop-name { font-family:'Syne',sans-serif;font-weight:800;font-size:20px;margin-bottom:4px; }
+  .prop-sub { font-family:'DM Mono',monospace;font-size:11px;color:#8892a4; }
+  .date { font-family:'DM Mono',monospace;font-size:10px;color:#4f5a6e;text-align:right; }
+  .metrics-grid { display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px; }
+  .metric-card { background:#12151c;border:1px solid #252b38;border-radius:10px;padding:14px; }
+  .metric-card.blue { border-top:2px solid #4f8ef7; }
+  .metric-card.green { border-top:2px solid #38d9a9; }
+  .metric-card.gold { border-top:2px solid #f7c948; }
+  .metric-card.red { border-top:2px solid #f76e6e; }
+  .metric-label { font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:#4f5a6e;margin-bottom:6px; }
+  .metric-value { font-family:'Syne',sans-serif;font-weight:800;font-size:20px;letter-spacing:-0.5px;line-height:1; }
+  .metric-value.blue { color:#4f8ef7; }
+  .metric-value.green { color:#38d9a9; }
+  .metric-value.gold { color:#f7c948; }
+  .metric-value.red { color:#f76e6e; }
+  .metric-sub { font-family:'DM Mono',monospace;font-size:9px;color:#4f5a6e;margin-top:4px; }
+  .section-title { font-family:'Syne',sans-serif;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:#8892a4;margin-bottom:10px; }
+  .two-col { display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px; }
+  table { width:100%;border-collapse:collapse;background:#12151c;border-radius:10px;overflow:hidden;border:1px solid #252b38; }
+  th { font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:#4f5a6e;padding:10px 12px;text-align:left;background:#1a1f2a;border-bottom:1px solid #252b38; }
+  td { font-family:'DM Mono',monospace;font-size:11px;color:#e8ecf4;padding:8px 12px;border-bottom:1px solid #1a1f2a; }
+  tr:last-child td { border-bottom:none; }
+  .wf-table td:last-child { text-align:right;color:#8892a4; }
+  .wf-total td { background:#1a1f2a;font-weight:600; }
+  .wf-total td:last-child { color:#38d9a9; }
+  .footer { margin-top:32px;padding-top:16px;border-top:1px solid #252b38;display:flex;justify-content:space-between;align-items:center; }
+  .footer-logo { font-family:'Syne',sans-serif;font-weight:800;font-size:14px; }
+  .footer-logo span { color:#4f8ef7; }
+  .footer-note { font-family:'DM Mono',monospace;font-size:9px;color:#4f5a6e; }
+  @media print {
+    body { background:#0a0c10 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact; }
+    @page { margin:0.5cm;background:#0a0c10; }
+  }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="logo">Pocket<span>Broker</span></div>
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:#4f5a6e;letter-spacing:0.08em;margin-top:2px;">DEAL ANALYSIS REPORT</div>
+    </div>
+    <div class="date">
+      <div style="font-size:13px;font-weight:600;color:#e8ecf4;font-family:'Syne',sans-serif;">${propName||'Property Analysis'}</div>
+      <div style="margin-top:4px;">${yr ? 'Built '+yr+' · ' : ''}${numUnits} units${bldgSF?' · '+f(bldgSF)+' SF':''}</div>
+      <div style="margin-top:2px;">Asking: ${price?'$'+f(price):'—'} &nbsp;·&nbsp; ${today}</div>
+    </div>
+  </div>
+
+  <!-- Key Metrics -->
+  <div class="section-title">Key Metrics</div>
+  <div class="metrics-grid" style="margin-bottom:24px;">
+    <div class="metric-card blue">
+      <div class="metric-label">Cap Rate</div>
+      <div class="metric-value blue">${fp(capRate)}</div>
+      <div class="metric-sub">NOI / Price</div>
+    </div>
+    <div class="metric-card green">
+      <div class="metric-label">NOI</div>
+      <div class="metric-value green">${fd(noi)}</div>
+      <div class="metric-sub">Annual</div>
+    </div>
+    <div class="metric-card gold">
+      <div class="metric-label">GRM</div>
+      <div class="metric-value gold">${grm?grm.toFixed(2)+'x':'—'}</div>
+      <div class="metric-sub">Price / Gross Rent</div>
+    </div>
+    <div class="metric-card ${cashFlow!=null?(cashFlow>=0?'green':'red'):'blue'}">
+      <div class="metric-label">Cash Flow</div>
+      <div class="metric-value ${cashFlow!=null?(cashFlow>=0?'green':'red'):'blue'}">${cashFlow!=null?fd(cashFlow):'N/A'}</div>
+      <div class="metric-sub">Annual after debt</div>
+    </div>
+    ${debtEnabled?`
+    <div class="metric-card gold">
+      <div class="metric-label">DSCR</div>
+      <div class="metric-value ${dcr>=1.25?'green':dcr>=1?'gold':'red'}">${dcr?dcr.toFixed(2)+'x':'—'}</div>
+      <div class="metric-sub">${dcr>=1.25?'✓ Approved':dcr>=1?'⚠ Tight':'✗ Below 1.0'}</div>
+    </div>
+    <div class="metric-card blue">
+      <div class="metric-label">Cash-on-Cash</div>
+      <div class="metric-value blue">${coc!=null?coc.toFixed(2)+'%':'—'}</div>
+      <div class="metric-sub">Return on equity</div>
+    </div>`:''}
+    <div class="metric-card gold">
+      <div class="metric-label">Price / Unit</div>
+      <div class="metric-value gold">${price?fd(price/numUnits):'—'}</div>
+      <div class="metric-sub">Per door</div>
+    </div>
+    ${bldgSF?`<div class="metric-card blue">
+      <div class="metric-label">Price / Bldg SF</div>
+      <div class="metric-value blue">${price?'$'+f(price/bldgSF):'—'}</div>
+      <div class="metric-sub">${f(bldgSF)} SF</div>
+    </div>`:''}
+  </div>
+
+  <div class="two-col">
+    <!-- Waterfall -->
+    <div>
+      <div class="section-title">Income & Expense Waterfall</div>
+      <table class="wf-table">
+        <tr><td>Gross Monthly Income</td><td>$${f(grossMonthly)}</td></tr>
+        <tr><td>× 12 Months</td><td>$${f(grossAnnual)}</td></tr>
+        <tr><td>Less: Vacancy (${vacancy}%)</td><td style="color:#f76e6e;">−$${f(vacancyLoss)}</td></tr>
+        <tr><td>Effective Gross Income</td><td style="color:#4f8ef7;">$${f(effectiveGross)}</td></tr>
+        <tr><td>Less: Total Expenses (${expRatio.toFixed(0)}%)</td><td style="color:#f76e6e;">−$${f(totalExpenses)}</td></tr>
+        <tr class="wf-total"><td>Net Operating Income</td><td style="color:#38d9a9;">$${f(noi)}</td></tr>
+        ${debtEnabled?`<tr><td>Less: Annual Debt Service</td><td style="color:#f76e6e;">−$${f(annualDebt)}</td></tr>
+        <tr class="wf-total"><td>Cash Flow Before Tax</td><td style="color:${cashFlow>=0?'#38d9a9':'#f76e6e'};">${cashFlow>=0?'+':'-'}$${f(Math.abs(cashFlow))}</td></tr>`:''}
+      </table>
+    </div>
+
+    <!-- Rent Roll -->
+    <div>
+      <div class="section-title">Rent Roll</div>
+      <table>
+        <tr><th>#</th><th>Type</th><th>Current</th><th>Year 2</th><th>Annual</th></tr>
+        ${rentRows}
+        <tr style="background:#1a1f2a;"><td colspan="2" style="color:#8892a4;">Total</td><td style="color:#4f8ef7;">$${f(monthlyRent)}/mo</td><td></td><td style="color:#4f8ef7;">$${f(monthlyRent*12)}</td></tr>
+      </table>
+
+      ${debtEnabled?`
+      <div class="section-title" style="margin-top:16px;">Debt Assumptions</div>
+      <table>
+        <tr><td>Asking Price</td><td style="text-align:right;color:#4f8ef7;">$${f(price)}</td></tr>
+        <tr><td>Down Payment (${downPct}%)</td><td style="text-align:right;color:#f7c948;">$${f(downPayment)}</td></tr>
+        <tr><td>Loan Amount</td><td style="text-align:right;color:#4f8ef7;">$${f(loanAmt)}</td></tr>
+        <tr><td>Interest Rate</td><td style="text-align:right;">${intRate}%</td></tr>
+        <tr><td>Amortization</td><td style="text-align:right;">${amortYears} years</td></tr>
+        <tr><td>Monthly Payment</td><td style="text-align:right;color:#f7c948;">$${f(monthlyPayment)}</td></tr>
+      </table>`:''}
+    </div>
+  </div>
+
+  <!-- Expenses -->
+  <div class="section-title">Expense Detail</div>
+  <table style="margin-bottom:24px;">
+    <tr><th>Expense</th><th style="text-align:right;">Annual Amount</th></tr>
+    ${expenseRows}
+    <tr class="wf-total"><td>Total Expenses</td><td style="text-align:right;color:#f76e6e;">$${f(totalExpenses)}</td></tr>
+  </table>
+
+  <div class="footer">
+    <div class="footer-logo">Pocket<span>Broker</span></div>
+    <div class="footer-note">Built by @TheGoogleGrad &nbsp;·&nbsp; Generated ${today} &nbsp;·&nbsp; pocketbroker.app</div>
+  </div>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  setTimeout(() => win.print(), 800);
 }
 
 function copySnapshot() {
