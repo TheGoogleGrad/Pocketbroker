@@ -142,7 +142,7 @@
   .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
   /* ── MAIN ── */
-  .main { max-width: 600px; margin: 0 auto; padding: 20px; padding-bottom: 120px; }
+  .main { max-width: 600px; margin: 0 auto; padding: 20px; padding-bottom: 120px; width: 100%; }
 
   /* ── PANELS ── */
   .panel { display: none; }
@@ -244,18 +244,18 @@
 
   /* ── UNIT ROWS ── */
   .unit-row {
-    padding: 10px 16px;
+    padding: 8px 10px;
     border-bottom: 1px solid var(--border);
     display: grid;
-    grid-template-columns: 28px 1fr 90px 90px auto;
-    gap: 6px;
+    grid-template-columns: 22px 60px 74px 62px 62px 18px;
+    gap: 4px;
     align-items: center;
   }
   .yr2-input {
-    background: rgba(56,217,169,0.08);
+    background: #ffffff;
     border: 1px solid rgba(56,217,169,0.25);
     border-radius: 6px;
-    color: var(--accent2);
+    color: #1a1f2e;
     font-family: var(--mono);
     font-size: 12px;
     padding: 6px 6px 6px 18px;
@@ -265,6 +265,22 @@
     height: 34px;
   }
   .yr2-input:focus { border-color: var(--accent2); }
+  .yr3-input {
+    background: #ffffff;
+    border: 1px solid rgba(247,201,72,0.3);
+    border-radius: 6px;
+    color: #1a1f2e;
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 0 4px 0 18px;
+    height: 34px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .yr3-input:focus { border-color: var(--accent3); }
+  .yr3-input::placeholder { color: rgba(247,201,72,0.3); }
+  .yr3-input:disabled { opacity: 0.4; background: var(--surface2); border-color: var(--border); color: var(--text3); }
   .yr2-input::placeholder { color: rgba(56,217,169,0.3); }
   .yr2-input:disabled { opacity: 0.4; background: var(--surface2); border-color: var(--border); color: var(--text3); }
   .global-increase-bar {
@@ -352,7 +368,7 @@
     border-radius: 6px;
     color: #1a1f2e;
     font-family: var(--mono);
-    font-size: 12px;
+    font-size: 10px;
     padding: 6px 28px 6px 10px;
     outline: none;
     width: 100%;
@@ -699,7 +715,7 @@
   .unit-header {
     padding: 6px 16px;
     display: grid;
-    grid-template-columns: 28px 1fr 90px 90px auto;
+    grid-template-columns: 22px 60px 74px 62px 62px 18px;
     gap: 6px;
   }
   .unit-header span {
@@ -730,6 +746,32 @@
     font-size: 15px;
     font-weight: 500;
     color: var(--accent2);
+  }
+
+  @media (min-width: 768px) {
+    .main { max-width: 860px !important; width: 100% !important; }
+    .section { width: 100% !important; }
+    #units-list, .unit-header { width: 100% !important; }
+    .unit-row {
+      display: grid !important;
+      grid-template-columns: 28px 1fr 1fr 1fr 1fr 24px !important;
+      gap: 10px !important;
+      padding: 10px 24px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    .unit-header {
+      display: grid !important;
+      grid-template-columns: 28px 1fr 1fr 1fr 1fr 24px !important;
+      padding: 8px 24px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    .unit-input, .yr2-input, .yr3-input { font-size: 13px !important; width: 100% !important; }
+    .unit-select { font-size: 12px !important; width: 100% !important; }
+    .results-grid { grid-template-columns: repeat(3, 1fr) !important; }
+    .prop-grid { grid-template-columns: repeat(3, 1fr) !important; }
+    .share-bar { padding: 12px 20px !important; }
   }
 
   @media (max-width: 380px) {
@@ -924,22 +966,30 @@
         <div class="section-title">Rental Units</div>
         <div class="section-badge" id="unit-count-badge">0 units</div>
       </div>
-      <div class="global-increase-bar">
-        <label class="apply-all-label">
-          <input type="checkbox" id="apply-all-yr2" onchange="applyAllYr2()" />
-          Apply % increase to all units
-        </label>
-        <div class="yr2-pct-wrap">
-          <input type="number" id="global-yr2-pct" value="5" step="0.1" min="0" oninput="applyAllYr2()" />
-          <span>% increase</span>
+      <div class="global-increase-bar" style="flex-direction:column;gap:8px;align-items:flex-start;">
+        <div style="display:flex;align-items:center;gap:10px;width:100%;flex-wrap:wrap;">
+          <div class="yr2-pct-wrap">
+            <input type="number" id="global-yr2-pct" value="5" step="0.1" min="0" oninput="applyAllYr2()" />
+            <span>% annual increase</span>
+          </div>
         </div>
-        <span style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-left:auto;">Year 2 rents</span>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;">
+          <label class="apply-all-label" style="color:var(--accent2);">
+            <input type="checkbox" id="apply-all-yr2" onchange="applyAllYr2()" />
+            Apply to Yr 2
+          </label>
+          <label class="apply-all-label" style="color:var(--accent3);">
+            <input type="checkbox" id="apply-all-yr3" onchange="applyAllYr2()" />
+            Apply to Yr 3
+          </label>
+        </div>
       </div>
       <div class="unit-header">
         <span></span>
-        <span>Unit Type</span>
-        <span style="color:var(--text3);">Cur. Rent</span>
-        <span style="color:var(--accent2);">Yr 2 Rent</span>
+        <span>Type</span>
+        <span style="color:var(--text3);">Rent</span>
+        <span style="color:var(--accent2);">Yr 2</span>
+        <span id="yr3-header-label" style="color:var(--accent3);font-size:8px;">YR 3 PRO FORMA</span>
         <span></span>
       </div>
       <div id="units-list"></div>
@@ -1236,7 +1286,7 @@ function goNext() {
 // ── UNITS ──
 function addUnit() {
   const id = ++unitId;
-  units.push({ id, type: '', rent: '', rent2: '' });
+  units.push({ id, type: '', rent: '', rent2: '', rent3: '' });
   renderUnits();
   calculate();
 }
@@ -1258,25 +1308,46 @@ function renderUnits() {
   const globalPct = parseFloat(document.getElementById('global-yr2-pct')?.value) || 5;
   list.innerHTML = units.map((u, i) => {
     const idx = units.indexOf(u);
+    const applyYr3 = document.getElementById('apply-all-yr3')?.checked;
     const yr2val = applyAll && u.rent ? Math.round(parseFloat(u.rent) * (1 + globalPct/100)) : (u.rent2 || '');
+    const yr2base = parseFloat(yr2val) || parseFloat(u.rent) || 0;
+    const yr3val = applyYr3 && yr2base ? Math.round(yr2base * (1 + globalPct/100)) : (u.rent3 || '');
     return `
     <div class="unit-row">
       <div class="unit-num">${i+1}</div>
       <select class="unit-select" onchange="units[${idx}].type=this.value;calculate()">
         <option value="" ${!u.type?'selected':''}>— Select —</option>
-        <option value="Studio" ${u.type==="Studio"?"selected":""}>Studio</option><option value="1 Bed / 1 Bath" ${u.type==="1 Bed / 1 Bath"?"selected":""}>1 Bed / 1 Bath</option><option value="2 Bed / 1 Bath" ${u.type==="2 Bed / 1 Bath"?"selected":""}>2 Bed / 1 Bath</option><option value="2 Bed / 2 Bath" ${u.type==="2 Bed / 2 Bath"?"selected":""}>2 Bed / 2 Bath</option><option value="3 Bed / 1 Bath" ${u.type==="3 Bed / 1 Bath"?"selected":""}>3 Bed / 1 Bath</option><option value="3 Bed / 2 Bath" ${u.type==="3 Bed / 2 Bath"?"selected":""}>3 Bed / 2 Bath</option><option value="3 Bed / 3 Bath" ${u.type==="3 Bed / 3 Bath"?"selected":""}>3 Bed / 3 Bath</option><option value="4 Bed / 2 Bath" ${u.type==="4 Bed / 2 Bath"?"selected":""}>4 Bed / 2 Bath</option><option value="4 Bed / 3 Bath" ${u.type==="4 Bed / 3 Bath"?"selected":""}>4 Bed / 3 Bath</option><option value="Commercial" ${u.type==="Commercial"?"selected":""}>Commercial</option><option value="Retail" ${u.type==="Retail"?"selected":""}>Retail</option><option value="Office" ${u.type==="Office"?"selected":""}>Office</option>
+        <option value="Studio" ${u.type==="Studio"?"selected":""}>Studio</option>
+        <option value="1 Bed / 1 Bath" ${u.type==="1 Bed / 1 Bath"?"selected":""}>1 Bed / 1 Bath</option>
+        <option value="2 Bed / 1 Bath" ${u.type==="2 Bed / 1 Bath"?"selected":""}>2 Bed / 1 Bath</option>
+        <option value="2 Bed / 2 Bath" ${u.type==="2 Bed / 2 Bath"?"selected":""}>2 Bed / 2 Bath</option>
+        <option value="3 Bed / 1 Bath" ${u.type==="3 Bed / 1 Bath"?"selected":""}>3 Bed / 1 Bath</option>
+        <option value="3 Bed / 2 Bath" ${u.type==="3 Bed / 2 Bath"?"selected":""}>3 Bed / 2 Bath</option>
+        <option value="3 Bed / 3 Bath" ${u.type==="3 Bed / 3 Bath"?"selected":""}>3 Bed / 3 Bath</option>
+        <option value="4 Bed / 2 Bath" ${u.type==="4 Bed / 2 Bath"?"selected":""}>4 Bed / 2 Bath</option>
+        <option value="4 Bed / 3 Bath" ${u.type==="4 Bed / 3 Bath"?"selected":""}>4 Bed / 3 Bath</option>
+        <option value="Commercial" ${u.type==="Commercial"?"selected":""}>Commercial</option>
+        <option value="Retail" ${u.type==="Retail"?"selected":""}>Retail</option>
+        <option value="Office" ${u.type==="Office"?"selected":""}>Office</option>
       </select>
       <div style="position:relative;display:flex;align-items:center;">
-        <span style="position:absolute;left:8px;font-family:var(--mono);font-size:12px;color:var(--text3);">$</span>
-        <input class="unit-input" type="number" placeholder="1,500" value="${u.rent}"
-          style="padding-left:18px;height:34px;font-size:12px;"
+        <span style="position:absolute;left:6px;font-family:var(--mono);font-size:11px;color:var(--text3);">$</span>
+        <input class="unit-input" type="number" placeholder="1500" value="${u.rent}"
+          style="padding-left:16px;height:34px;font-size:11px;"
           oninput="units[${idx}].rent=this.value;if(document.getElementById('apply-all-yr2').checked){applyAllYr2();}else{calculate();}" />
       </div>
       <div style="position:relative;display:flex;align-items:center;">
-        <span style="position:absolute;left:6px;font-family:var(--mono);font-size:11px;color:rgba(56,217,169,0.5);z-index:1;">$</span>
+        <span style="position:absolute;left:4px;font-family:var(--mono);font-size:10px;color:rgba(56,217,169,0.5);z-index:1;">$</span>
         <input class="yr2-input" type="number" placeholder="—" value="${yr2val}"
+          style="padding-left:14px;font-size:11px;"
           ${applyAll ? 'disabled' : ''}
           oninput="units[${idx}].rent2=this.value;calculate()" />
+      </div>
+      <div style="position:relative;display:flex;align-items:center;">
+        <span style="position:absolute;left:4px;font-family:var(--mono);font-size:10px;color:rgba(247,201,72,0.5);z-index:1;">$</span>
+        <input class="yr3-input" type="number" placeholder="—" value="${yr3val}"
+          ${applyAll ? 'disabled' : ''}
+          oninput="units[${idx}].rent3=this.value;calculate()" />
       </div>
       <button class="unit-remove" onclick="removeUnit(${u.id})">×</button>
     </div>
@@ -1286,13 +1357,19 @@ function renderUnits() {
 
 // ── YEAR 2 APPLY ALL ──
 function applyAllYr2() {
-  const applyAll = document.getElementById('apply-all-yr2')?.checked;
+  const applyYr2 = document.getElementById('apply-all-yr2')?.checked;
+  const applyYr3 = document.getElementById('apply-all-yr3')?.checked;
   const globalPct = parseFloat(document.getElementById('global-yr2-pct')?.value) || 5;
-  if (applyAll) {
-    units.forEach(u => {
-      if (u.rent) u.rent2 = Math.round(parseFloat(u.rent) * (1 + globalPct/100));
-    });
-  }
+  const mult = 1 + globalPct / 100;
+  units.forEach(u => {
+    const base = parseFloat(u.rent) || 0;
+    if (applyYr2 && base) u.rent2 = Math.round(base * mult);
+    const yr2base = parseFloat(u.rent2) || base;
+    if (applyYr3 && yr2base) u.rent3 = Math.round(yr2base * mult);
+  });
+  // Update Yr 3 header label
+  const yr3label = document.getElementById('yr3-header-label');
+  if (yr3label) yr3label.textContent = applyYr3 ? 'Yr 3' : 'YR 3 PRO FORMA';
   renderUnits();
   calculate();
 }
@@ -1403,6 +1480,8 @@ function calculate() {
 
   // Monthly rent — year 2
   const hasYr2 = units.some(u => u.rent2 && parseFloat(u.rent2) > 0);
+  const hasYr3 = units.some(u => u.rent3 && parseFloat(u.rent3) > 0);
+  const monthlyRentYr3 = hasYr3 ? units.reduce((s, u) => s + (parseFloat(u.rent3) || parseFloat(u.rent2) || parseFloat(u.rent) || 0), 0) : 0;
   const monthlyRentYr2 = hasYr2 ? units.reduce((s, u) => s + (parseFloat(u.rent2) || parseFloat(u.rent) || 0), 0) : 0;
   const grossMonthlyYr2 = monthlyRentYr2 + otherIncome;
   const grossAnnualYr2 = grossMonthlyYr2 * 12;
@@ -1427,9 +1506,15 @@ function calculate() {
   customExpenses.forEach(e => { totalExpenses += (e.value || 0); });
 
   const noi = effectiveGross - totalExpenses;
+  const grossMonthlyYr3 = monthlyRentYr3 + otherIncome;
+  const grossAnnualYr3 = grossMonthlyYr3 * 12;
+  const vacancyLossYr3 = grossAnnualYr3 * (vacancyPct / 100);
+  const effectiveGrossYr3 = grossAnnualYr3 - vacancyLossYr3;
   const noiYr2 = hasYr2 ? effectiveGrossYr2 - totalExpenses : null;
+  const noiYr3 = hasYr3 ? effectiveGrossYr3 - totalExpenses : null;
   const capRate = price > 0 ? (noi / price) * 100 : 0;
   const capRateYr2 = (hasYr2 && price > 0) ? (noiYr2 / price) * 100 : null;
+  const capRateYr3 = (hasYr3 && price > 0) ? (noiYr3 / price) * 100 : null;
   const grm = grossAnnual > 0 ? price / grossAnnual : 0;
   const expenseRatio = effectiveGross > 0 ? (totalExpenses / effectiveGross) * 100 : 0;
 
@@ -1442,6 +1527,7 @@ function calculate() {
   const annualDebt = monthlyPayment * 12;
   const cashFlow = debtEnabled ? noi - annualDebt : null;
   const cashFlowYr2 = (hasYr2 && debtEnabled) ? noiYr2 - annualDebt : null;
+  const cashFlowYr3 = (hasYr3 && debtEnabled) ? noiYr3 - annualDebt : null;
   const dcr = annualDebt > 0 ? noi / annualDebt : null;
   const downPayment = price * (downPct / 100);
   const coc = (debtEnabled && downPayment > 0) ? (cashFlow / downPayment) * 100 : null;
@@ -1499,7 +1585,8 @@ function calculate() {
     totalExpenses, noi, capRate, grm, expenseRatio,
     annualDebt, cashFlow, dcr, coc, downPayment, loanAmt,
     monthlyPayment, numUnits, bldgSF, landSF,
-    hasYr2, grossMonthlyYr2, grossAnnualYr2, vacancyLossYr2, effectiveGrossYr2, noiYr2, capRateYr2, cashFlowYr2
+    hasYr2, grossMonthlyYr2, grossAnnualYr2, vacancyLossYr2, effectiveGrossYr2, noiYr2, capRateYr2, cashFlowYr2,
+    hasYr3, grossMonthlyYr3, grossAnnualYr3, effectiveGrossYr3, noiYr3, capRateYr3, cashFlowYr3
   });
 }
 
@@ -1601,40 +1688,46 @@ function renderResults(d) {
       </div>
     </div>
 
-    ${d.hasYr2 ? `
+    ${(d.hasYr2 || d.hasYr3) ? `
     <div style="margin-bottom:16px;">
-      <div style="font-family:var(--display);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:10px;padding:0 2px;">Year 2 Comparison</div>
+      <div style="font-family:var(--display);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:10px;padding:0 2px;">Rent Projection</div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--border);">
-          <div style="padding:8px 12px;font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;border-right:1px solid var(--border);">Metric</div>
-          <div style="padding:8px 12px;font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;border-right:1px solid var(--border);">Current</div>
-          <div style="padding:8px 12px;font-family:var(--mono);font-size:10px;color:var(--accent2);text-transform:uppercase;letter-spacing:0.06em;">Year 2</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-bottom:1px solid var(--border);">
+          <div style="padding:8px 10px;font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;border-right:1px solid var(--border);">Metric</div>
+          <div style="padding:8px 10px;font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;border-right:1px solid var(--border);">Now</div>
+          <div style="padding:8px 10px;font-family:var(--mono);font-size:9px;color:var(--accent2);text-transform:uppercase;letter-spacing:0.06em;border-right:1px solid var(--border);">Yr 2</div>
+          <div style="padding:8px 10px;font-family:var(--mono);font-size:9px;color:var(--accent3);text-transform:uppercase;letter-spacing:0.06em;">Yr 3</div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--border);">
-          <div style="padding:10px 12px;font-size:12px;color:var(--text2);border-right:1px solid var(--border);">Gross Rent/mo</div>
-          <div style="padding:10px 12px;font-family:var(--mono);font-size:12px;color:var(--text);border-right:1px solid var(--border);">$${fmt(d.grossMonthly)}</div>
-          <div style="padding:10px 12px;font-family:var(--mono);font-size:12px;color:var(--accent2);">$${fmt(d.grossMonthlyYr2)}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-bottom:1px solid var(--border);">
+          <div style="padding:9px 10px;font-size:11px;color:var(--text2);border-right:1px solid var(--border);">Rent/mo</div>
+          <div style="padding:9px 10px;font-family:var(--mono);font-size:11px;color:var(--text);border-right:1px solid var(--border);">$${fmt(d.grossMonthly)}</div>
+          <div style="padding:9px 10px;font-family:var(--mono);font-size:11px;color:var(--accent2);border-right:1px solid var(--border);">${d.hasYr2 ? '$'+fmt(d.grossMonthlyYr2) : '—'}</div>
+          <div style="padding:9px 10px;font-family:var(--mono);font-size:11px;color:var(--accent3);">${d.hasYr3 ? '$'+fmt(d.grossMonthlyYr3) : '—'}</div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--border);">
-          <div style="padding:10px 12px;font-size:12px;color:var(--text2);border-right:1px solid var(--border);">Eff. Gross/yr</div>
-          <div style="padding:10px 12px;font-family:var(--mono);font-size:12px;color:var(--text);border-right:1px solid var(--border);">$${fmt(d.effectiveGross)}</div>
-          <div style="padding:10px 12px;font-family:var(--mono);font-size:12px;color:var(--accent2);">$${fmt(d.effectiveGrossYr2)}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-bottom:1px solid var(--border);">
+          <div style="padding:9px 10px;font-size:11px;color:var(--text2);border-right:1px solid var(--border);">Eff. Gross</div>
+          <div style="padding:9px 10px;font-family:var(--mono);font-size:11px;color:var(--text);border-right:1px solid var(--border);">$${fmt(d.effectiveGross)}</div>
+          <div style="padding:9px 10px;font-family:var(--mono);font-size:11px;color:var(--accent2);border-right:1px solid var(--border);">${d.hasYr2 ? '$'+fmt(d.effectiveGrossYr2) : '—'}</div>
+          <div style="padding:9px 10px;font-family:var(--mono);font-size:11px;color:var(--accent3);">${d.hasYr3 ? '$'+fmt(d.effectiveGrossYr3) : '—'}</div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--border);">
-          <div style="padding:10px 12px;font-size:12px;color:var(--text2);border-right:1px solid var(--border);">NOI</div>
-          <div style="padding:10px 12px;font-family:var(--mono);font-size:12px;color:var(--text);border-right:1px solid var(--border);">$${fmt(d.noi)}</div>
-          <div style="padding:10px 12px;font-family:var(--mono);font-size:12px;color:var(--accent2);">$${fmt(d.noiYr2)}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-bottom:1px solid var(--border);">
+          <div style="padding:9px 10px;font-size:11px;color:var(--text2);border-right:1px solid var(--border);">NOI</div>
+          <div style="padding:9px 10px;font-family:var(--mono);font-size:11px;color:var(--text);border-right:1px solid var(--border);">$${fmt(d.noi)}</div>
+          <div style="padding:9px 10px;font-family:var(--mono);font-size:11px;color:var(--accent2);border-right:1px solid var(--border);">${d.hasYr2 ? '$'+fmt(d.noiYr2) : '—'}</div>
+          <div style="padding:9px 10px;font-family:var(--mono);font-size:11px;color:var(--accent3);">${d.hasYr3 ? '$'+fmt(d.noiYr3) : '—'}</div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;${d.cashFlowYr2 !== null ? 'border-bottom:1px solid var(--border);' : ''}">
-          <div style="padding:10px 12px;font-size:12px;color:var(--text2);border-right:1px solid var(--border);">Cap Rate</div>
-          <div style="padding:10px 12px;font-family:var(--mono);font-size:12px;color:var(--text);border-right:1px solid var(--border);">${fmtPct(d.capRate)}</div>
-          <div style="padding:10px 12px;font-family:var(--mono);font-size:12px;color:var(--accent2);">${fmtPct(d.capRateYr2)}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;${(d.cashFlowYr2 !== null || d.cashFlowYr3 !== null) ? 'border-bottom:1px solid var(--border);' : ''}">
+          <div style="padding:9px 10px;font-size:11px;color:var(--text2);border-right:1px solid var(--border);">Cap Rate</div>
+          <div style="padding:9px 10px;font-family:var(--mono);font-size:11px;color:var(--text);border-right:1px solid var(--border);">${fmtPct(d.capRate)}</div>
+          <div style="padding:9px 10px;font-family:var(--mono);font-size:11px;color:var(--accent2);border-right:1px solid var(--border);">${d.hasYr2 ? fmtPct(d.capRateYr2) : '—'}</div>
+          <div style="padding:9px 10px;font-family:var(--mono);font-size:11px;color:var(--accent3);">${d.hasYr3 ? fmtPct(d.capRateYr3) : '—'}</div>
         </div>
-        ${d.cashFlowYr2 !== null ? `
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;">
-          <div style="padding:10px 12px;font-size:12px;color:var(--text2);border-right:1px solid var(--border);">Cash Flow</div>
-          <div style="padding:10px 12px;font-family:var(--mono);font-size:12px;color:var(--text);border-right:1px solid var(--border);">${fmtSigned(d.cashFlow)}</div>
-          <div style="padding:10px 12px;font-family:var(--mono);font-size:12px;color:var(--accent2);">${fmtSigned(d.cashFlowYr2)}</div>
+        ${(d.cashFlowYr2 !== null || d.cashFlowYr3 !== null) ? `
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;">
+          <div style="padding:9px 10px;font-size:11px;color:var(--text2);border-right:1px solid var(--border);">Cash Flow</div>
+          <div style="padding:9px 10px;font-family:var(--mono);font-size:11px;color:var(--text);border-right:1px solid var(--border);">${fmtSigned(d.cashFlow)}</div>
+          <div style="padding:9px 10px;font-family:var(--mono);font-size:11px;color:var(--accent2);border-right:1px solid var(--border);">${d.cashFlowYr2 !== null ? fmtSigned(d.cashFlowYr2) : '—'}</div>
+          <div style="padding:9px 10px;font-family:var(--mono);font-size:11px;color:var(--accent3);">${d.cashFlowYr3 !== null ? fmtSigned(d.cashFlowYr3) : '—'}</div>
         </div>` : ''}
       </div>
     </div>` : ''}
