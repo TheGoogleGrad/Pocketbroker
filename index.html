@@ -863,7 +863,7 @@
 <div class="header">
   <div>
     <div class="logo">Pocket<span>Broker</span></div>
-    <div class="tagline">deal analyzer</div>
+    <div class="tagline">DEAL ANALYZER</div>
   </div>
   <div style="display:flex;gap:8px;align-items:center;">
     <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
@@ -1122,7 +1122,7 @@
 
 <!-- Share bar -->
 <div class="share-bar" style="flex-wrap:wrap;gap:8px;">
-  <button class="calc-btn" onclick="switchTab('results')" style="flex:1;min-width:100px;">→ Results</button>
+  <button class="calc-btn" id="next-btn" onclick="goNext()" style="flex:1;min-width:100px;">→ Next</button>
   <button class="share-btn" onclick="copySnapshot()" style="padding:14px 10px;font-size:11px;">⬡ Copy</button>
   <button class="share-btn" onclick="exportExcel()" style="padding:14px 10px;font-size:11px;border-color:rgba(56,217,169,0.4);color:var(--accent2);">⬇ XLS</button>
   <button class="share-btn" onclick="exportPDF()" style="padding:14px 10px;font-size:11px;border-color:rgba(247,201,72,0.4);color:var(--accent3);">⬇ PDF</button>
@@ -1196,13 +1196,41 @@ function init() {
 }
 
 // ── TABS ──
+let activeTab = 'income';
+
 function switchTab(tab) {
+  activeTab = tab;
   document.querySelectorAll('.tab').forEach((t,i) => {
     t.classList.toggle('active', ['income','expenses','debt','results'][i] === tab);
   });
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + tab).classList.add('active');
   if (tab === 'results') calculate();
+  updateNextBtn();
+}
+
+function updateNextBtn() {
+  const btn = document.getElementById('next-btn');
+  if (!btn) return;
+  const tabOrder = ['income','expenses','debt','results'];
+  const idx = tabOrder.indexOf(activeTab);
+  if (activeTab === 'debt') {
+    btn.textContent = '→ Results';
+  } else if (activeTab === 'results') {
+    btn.textContent = '← Back';
+  } else {
+    btn.textContent = '→ Next';
+  }
+}
+
+function goNext() {
+  const tabOrder = ['income','expenses','debt','results'];
+  const idx = tabOrder.indexOf(activeTab);
+  if (activeTab === 'results') {
+    switchTab('income');
+  } else {
+    switchTab(tabOrder[idx + 1]);
+  }
 }
 
 // ── UNITS ──
