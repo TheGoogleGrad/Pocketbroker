@@ -1661,10 +1661,7 @@ function renderResults(d) {
         <div class="result-value">${debtEnabled ? fmtSigned(d.cashFlow) : 'N/A'}</div>
         <div class="result-sub">${debtEnabled ? 'Annual after debt' : 'Enable debt tab'}</div>
       </div>
-    </div>
-
-    ${debtEnabled && d.dcr ? `
-    <div class="results-grid" style="margin-top:-4px;">
+      ${debtEnabled && d.dcr ? `
       <div class="result-card ${d.dcr >= 1.25 ? 'green' : 'red'}">
         <div class="result-label">Debt Coverage</div>
         <div class="result-value">${fmtX(d.dcr)}</div>
@@ -1674,10 +1671,7 @@ function renderResults(d) {
         <div class="result-label">Cash-on-Cash</div>
         <div class="result-value">${d.coc !== null ? fmtPct(d.coc) : '—'}</div>
         <div class="result-sub">Return on equity</div>
-      </div>
-    </div>` : ''}
-
-    <div class="results-grid" style="margin-top:-4px;">
+      </div>` : ''}
       <div class="result-card gold">
         <div class="result-label">Price / Unit</div>
         <div class="result-value">${d.price && d.numUnits ? '$' + fmt(d.price / d.numUnits) : '—'}</div>
@@ -1692,11 +1686,6 @@ function renderResults(d) {
         <div class="result-label">Price / Land SF</div>
         <div class="result-value">${d.landSF ? '$' + (d.price / d.landSF).toFixed(0) : '—'}</div>
         <div class="result-sub">${d.landSF ? d.landSF.toLocaleString() + ' sf' : 'Enter land sf'}</div>
-      </div>
-      <div class="result-card blue">
-        <div class="result-label">$/SF · $/Unit</div>
-        <div class="result-value" style="font-size:16px;">${d.bldgSF && d.numUnits ? fmt(d.bldgSF / d.numUnits) + ' sf' : '—'}</div>
-        <div class="result-sub">Avg SF per unit</div>
       </div>
     </div>
 
