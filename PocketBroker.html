@@ -1159,6 +1159,11 @@
 
   <!-- ══ RESULTS PANEL ══ -->
   <div class="panel" id="panel-results">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;margin:0 0 16px 0;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;">
+      <div style="font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);">Analysis Date</div>
+      <input type="month" id="analysis-date"
+        style="background:none;border:none;outline:none;font-family:var(--mono);font-size:13px;color:var(--accent);text-align:right;cursor:pointer;" />
+    </div>
     <div id="results-content">
       <div class="empty">
         <div class="empty-icon">🏢</div>
@@ -1199,6 +1204,7 @@ const defaultExpenses = [
   { id: 'gardener', name: 'Gardener / Landscaping', value: 100,  type: 'per_month', on: false, note: '$/month' },
   { id: 'pest',     name: 'Pest Control',           value: 75,   type: 'per_month', on: false, note: '$/month' },
   { id: 'reserves', name: 'Reserves',               value: 250,  type: 'per_unit', on: true,  note: 'per unit/yr' },
+  { id: 'licenses', name: 'Licenses & Permits',     value: 1000, type: 'flat',     on: true,  note: 'annual $' },
 ];
 
 let customExpenses = [];
@@ -1243,6 +1249,12 @@ function init() {
   const saved = localStorage.getItem('pb_theme');
   const btn = document.getElementById('theme-btn');
   if (btn) btn.textContent = saved === 'light' ? '☀️' : '🌙';
+  // Set current month/year on analysis date
+  const adEl = document.getElementById('analysis-date');
+  if (adEl && !adEl.value) {
+    const now = new Date();
+    adEl.value = now.toISOString().slice(0, 7);
+  }
 }
 
 // ── TABS ──
@@ -1346,7 +1358,7 @@ function renderUnits() {
       <div style="position:relative;display:flex;align-items:center;">
         <span style="position:absolute;left:4px;font-family:var(--mono);font-size:10px;color:rgba(247,201,72,0.5);z-index:1;">$</span>
         <input class="yr3-input" type="number" placeholder="—" value="${yr3val}"
-          ${applyAll ? 'disabled' : ''}
+          ${applyYr3 ? 'disabled' : ''}
           oninput="units[${idx}].rent3=this.value;calculate()" />
       </div>
       <button class="unit-remove" onclick="removeUnit(${u.id})">×</button>
