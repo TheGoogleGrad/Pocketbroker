@@ -938,6 +938,7 @@
   <div class="tab active" onclick="switchTab('income')">Income</div>
   <div class="tab" onclick="switchTab('expenses')">Expenses</div>
   <div class="tab" onclick="switchTab('debt')">Debt</div>
+  <div class="tab" onclick="switchTab('comps')">Comps</div>
   <div class="tab" onclick="switchTab('results')">Results</div>
 </div>
 
@@ -1180,6 +1181,55 @@
   </div>
 
   <!-- ══ RESULTS PANEL ══ -->
+  <div class="panel" id="panel-comps">
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Market Comps</div>
+        <div class="section-badge" id="comps-count-badge">0 comps</div>
+      </div>
+      <div style="padding:12px 16px 4px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text3);">Add comparable sales to benchmark this deal</div>
+        <button class="add-btn" style="margin:0;padding:8px 14px;font-size:11px;" onclick="addComp()">＋ Add Comp</button>
+      </div>
+
+      <!-- Comps header -->
+      <div id="comps-header" style="display:none;padding:6px 16px;background:var(--surface2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+        <div style="display:grid;grid-template-columns:1fr 60px 80px 60px 24px;gap:6px;align-items:center;margin-bottom:4px;">
+          <span style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);">Address</span>
+          <span style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);">Units</span>
+          <span style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);">Sale Price</span>
+          <span style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent2);">Cap</span>
+          <span></span>
+        </div>
+        <div style="display:grid;grid-template-columns:80px 80px 1fr;gap:6px;">
+          <span style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);">Bldg SF</span>
+          <span style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);">Land SF</span>
+          <span style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);">Calculated</span>
+        </div>
+      </div>
+
+      <div id="comps-list"></div>
+
+      <!-- Comps summary -->
+      <div id="comps-summary" style="display:none;"></div>
+    </div>
+
+    <!-- Notes -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Deal Notes</div>
+      </div>
+      <div style="padding:12px 16px;">
+        <textarea id="deal-notes" placeholder="Add notes about this deal, market conditions, broker contact, etc..."
+          style="width:100%;min-height:120px;background:#ffffff;border:1px solid var(--border);border-radius:8px;
+                 padding:12px;font-family:var(--mono);font-size:12px;color:#1a1f2e;resize:vertical;outline:none;
+                 transition:border-color 0.15s;line-height:1.5;"
+          onfocus="this.style.borderColor='var(--accent)'"
+          onblur="this.style.borderColor='var(--border)'"></textarea>
+      </div>
+    </div>
+  </div>
+
   <div class="panel" id="panel-results">
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;margin:0 0 16px 0;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;">
       <div style="font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);">Analysis Date</div>
@@ -1300,9 +1350,11 @@ function switchTab(tab) {
 function updateNextBtn() {
   const btn = document.getElementById('next-btn');
   if (!btn) return;
-  const tabOrder = ['income','expenses','debt','results'];
+  const tabOrder = ['income','expenses','debt','comps','results'];
   const idx = tabOrder.indexOf(activeTab);
   if (activeTab === 'debt') {
+    btn.textContent = '→ Comps';
+  } else if (activeTab === 'comps') {
     btn.textContent = '→ Results';
   } else if (activeTab === 'results') {
     btn.textContent = '← Back';
@@ -2234,6 +2286,235 @@ function exportPDF() {
   setTimeout(() => win.print(), 800);
 }
 
+// ── COMPS ──
+let comps = [];
+let compId = 0;
+
+function addComp() {
+  comps.push({ id: ++compId, address: '', units: '', price: '', capRate: '', bldgSF: '', landSF: '', notes: '' });
+  renderComps();
+}
+
+function removeComp(id) {
+  comps = comps.filter(c => c.id !== id);
+  renderComps();
+}
+
+function toggleCompNotes(id) {
+  const el = document.getElementById('comp-notes-' + id);
+  const btn = document.getElementById('comp-notes-btn-' + id);
+  if (!el) return;
+  const open = el.style.display === 'none' || el.style.display === '';
+  el.style.display = open ? 'block' : 'none';
+  if (btn) btn.textContent = open ? '▲ Notes' : '▼ Notes';
+}
+
+function updateCompCalcs(id) {
+  const c = comps.find(x => x.id === id);
+  const el = document.getElementById('comp-calcs-' + id);
+  if (!c || !el) return;
+  const price = parseFloat((c.price||'').replace(/,/g,'')) || 0;
+  const numUnits = parseFloat(c.units) || 0;
+  const bldgSF = parseFloat(c.bldgSF) || 0;
+  const landSF = parseFloat(c.landSF) || 0;
+  const ppu = price && numUnits ? '$'+Math.round(price/numUnits).toLocaleString() : '';
+  const ppb = price && bldgSF ? '$'+Math.round(price/bldgSF).toLocaleString() : '';
+  const ppl = price && landSF ? '$'+Math.round(price/landSF).toLocaleString() : '';
+  el.innerHTML = `
+    <div style="background:var(--surface2);border-radius:6px;padding:5px 8px;">
+      <div style="font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:2px;">$ / Unit</div>
+      <div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent3);">${ppu || '—'}</div>
+    </div>
+    <div style="background:var(--surface2);border-radius:6px;padding:5px 8px;">
+      <div style="font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:2px;">$ / Bldg SF</div>
+      <div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent);">${ppb || '—'}</div>
+    </div>
+    <div style="background:var(--surface2);border-radius:6px;padding:5px 8px;">
+      <div style="font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:2px;">$ / Land SF</div>
+      <div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent2);">${ppl || '—'}</div>
+    </div>`;
+  // Also update summary
+  renderCompSummary();
+}
+
+function renderCompSummary() {
+  const summary = document.getElementById('comps-summary');
+  if (!summary) return;
+  const withPrice = comps.filter(c => c.price);
+  const withCap = comps.filter(c => c.capRate);
+  const withUnits = comps.filter(c => c.price && c.units);
+  if (withPrice.length === 0 && withCap.length === 0) { summary.style.display='none'; return; }
+  const avgPrice = withPrice.length ? withPrice.reduce((s,c)=>s+parseFloat((c.price||'').replace(/,/g,'')),0)/withPrice.length : null;
+  const avgCap = withCap.length ? withCap.reduce((s,c)=>s+parseFloat(c.capRate),0)/withCap.length : null;
+  const avgPPU = withUnits.length ? withUnits.reduce((s,c)=>s+parseFloat((c.price||'').replace(/,/g,''))/parseFloat(c.units),0)/withUnits.length : null;
+  const subjectPrice = parseFloat(document.getElementById('prop-price')?.value?.replace(/,/g,''))||0;
+  const subjectPPU = subjectPrice && units.length ? subjectPrice/units.length : null;
+  summary.style.display = 'block';
+  summary.innerHTML = `
+    <div style="padding:12px 16px;background:var(--surface2);border-top:2px solid var(--border);">
+      <div style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:10px;">Comp Averages vs Subject</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Avg Cap Rate</div>
+          <div style="font-family:var(--display);font-weight:800;font-size:18px;color:var(--accent2);">${avgCap ? avgCap.toFixed(2)+'%' : '—'}</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Avg Sale Price</div>
+          <div style="font-family:var(--display);font-weight:800;font-size:18px;color:var(--accent);">${avgPrice ? '$'+Math.round(avgPrice).toLocaleString() : '—'}</div>
+          ${subjectPrice ? '<div style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:2px;">Subject: <span style="color:var(--accent);">$'+subjectPrice.toLocaleString()+'</span></div>' : ''}
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Avg $/Unit</div>
+          <div style="font-family:var(--display);font-weight:800;font-size:18px;color:var(--accent3);">${avgPPU ? '$'+Math.round(avgPPU).toLocaleString() : '—'}</div>
+          ${subjectPPU ? '<div style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:2px;">Subject: <span style="color:var(--accent3);">$'+Math.round(subjectPPU).toLocaleString()+'</span></div>' : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderComps() {
+  const list = document.getElementById('comps-list');
+  const header = document.getElementById('comps-header');
+  const summary = document.getElementById('comps-summary');
+  const badge = document.getElementById('comps-count-badge');
+  if (!list) return;
+
+  badge.textContent = comps.length + ' comp' + (comps.length !== 1 ? 's' : '');
+
+  if (comps.length === 0) {
+    list.innerHTML = '<div style="padding:24px 16px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--text3);">No comps added yet</div>';
+    header.style.display = 'none';
+    summary.style.display = 'none';
+    return;
+  }
+
+  header.style.display = 'block';
+
+  list.innerHTML = comps.map((c, i) => {
+    const idx = comps.indexOf(c);
+    const price = parseFloat((c.price||'').replace(/,/g,'')) || 0;
+    const numUnits = parseFloat(c.units) || 0;
+    const bldgSF = parseFloat(c.bldgSF) || 0;
+    const landSF = parseFloat(c.landSF) || 0;
+    const pricePerUnit = price && numUnits ? Math.round(price / numUnits) : null;
+    const pricePerBldg = price && bldgSF ? Math.round(price / bldgSF) : null;
+    const pricePerLand = price && landSF ? Math.round(price / landSF) : null;
+    const hasNotes = c.notes && c.notes.trim().length > 0;
+    return `
+    <div style="border-bottom:1px solid var(--border);">
+      <!-- Main row -->
+      <div style="padding:10px 16px;">
+        <div style="display:grid;grid-template-columns:1fr 60px 80px 60px 24px;gap:6px;align-items:center;margin-bottom:6px;">
+          <input type="text" placeholder="123 Main St, City" value="${c.address}"
+            style="background:#ffffff;border:1px solid var(--border);border-radius:6px;padding:6px 8px;
+                   font-family:var(--mono);font-size:11px;color:#1a1f2e;outline:none;width:100%;"
+            oninput="comps[${idx}].address=this.value" />
+          <input type="number" placeholder="Units" value="${c.units}"
+            style="background:#ffffff;border:1px solid var(--border);border-radius:6px;padding:6px 4px;
+                   font-family:var(--mono);font-size:11px;color:#1a1f2e;outline:none;width:100%;text-align:center;"
+            oninput="comps[${idx}].units=this.value;renderComps()" />
+          <div style="position:relative;">
+            <span style="position:absolute;left:6px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:10px;color:var(--text3);">$</span>
+            <input type="text" placeholder="1,200,000" value="${c.price}"
+              style="background:#ffffff;border:1px solid rgba(79,142,247,0.3);border-radius:6px;padding:6px 4px 6px 14px;
+                     font-family:var(--mono);font-size:11px;color:#1a1f2e;outline:none;width:100%;"
+              oninput="comps[${idx}].price=this.value;renderComps()" />
+          </div>
+          <div style="position:relative;">
+            <input type="number" placeholder="5.0" step="0.01" value="${c.capRate}"
+              style="background:#ffffff;border:1px solid rgba(56,217,169,0.3);border-radius:6px;padding:6px 14px 6px 6px;
+                     font-family:var(--mono);font-size:11px;color:#1a1f2e;outline:none;width:100%;text-align:center;"
+              oninput="comps[${idx}].capRate=this.value;renderComps()" />
+            <span style="position:absolute;right:4px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:9px;color:var(--text3);">%</span>
+          </div>
+          <button onclick="removeComp(${c.id})" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:0;line-height:1;">×</button>
+        </div>
+        <!-- SF row -->
+        <div style="display:grid;grid-template-columns:80px 80px 1fr auto;gap:6px;align-items:end;">
+          <div>
+            <div style="font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:3px;">Bldg SF</div>
+            <input type="number" placeholder="4,500" value="${c.bldgSF||''}"
+              style="background:#ffffff;border:1px solid var(--border);border-radius:6px;padding:5px 4px 5px 8px;
+                     font-family:var(--mono);font-size:10px;color:#1a1f2e;outline:none;width:100%;"
+              oninput="comps[${idx}].bldgSF=this.value;updateCompCalcs(${c.id})" />
+          </div>
+          <div>
+            <div style="font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:3px;">Land SF</div>
+            <input type="number" placeholder="6,000" value="${c.landSF||''}"
+              style="background:#ffffff;border:1px solid var(--border);border-radius:6px;padding:5px 4px 5px 8px;
+                     font-family:var(--mono);font-size:10px;color:#1a1f2e;outline:none;width:100%;"
+              oninput="comps[${idx}].landSF=this.value;updateCompCalcs(${c.id})" />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;" id="comp-calcs-${c.id}">
+            <div style="background:var(--surface2);border-radius:6px;padding:5px 8px;">
+              <div style="font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:2px;">$ / Unit</div>
+              <div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent3);">${pricePerUnit ? '$'+pricePerUnit.toLocaleString() : '—'}</div>
+            </div>
+            <div style="background:var(--surface2);border-radius:6px;padding:5px 8px;">
+              <div style="font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:2px;">$ / Bldg SF</div>
+              <div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent);">${pricePerBldg ? '$'+pricePerBldg.toLocaleString() : '—'}</div>
+            </div>
+            <div style="background:var(--surface2);border-radius:6px;padding:5px 8px;">
+              <div style="font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:2px;">$ / Land SF</div>
+              <div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent2);">${pricePerLand ? '$'+pricePerLand.toLocaleString() : '—'}</div>
+            </div>
+          </div>
+          <button id="comp-notes-btn-${c.id}" onclick="toggleCompNotes(${c.id})"
+            style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;
+                   font-family:var(--mono);font-size:9px;color:${hasNotes ? 'var(--accent)' : 'var(--text3)'};cursor:pointer;white-space:nowrap;align-self:flex-end;">
+            ▼ Notes
+          </button>
+        </div>
+      </div>
+      <!-- Collapsible notes -->
+      <div id="comp-notes-${c.id}" style="display:none;padding:0 16px 12px;">
+        <textarea placeholder="Notes about this comp — source, date, condition, broker, etc."
+          style="width:100%;min-height:72px;background:#ffffff;border:1px solid var(--border);border-radius:6px;
+                 padding:8px;font-family:var(--mono);font-size:11px;color:#1a1f2e;resize:vertical;outline:none;"
+          oninput="comps[${idx}].notes=this.value;const btn=document.getElementById('comp-notes-btn-${c.id}');if(btn)btn.style.color=this.value.trim()?'var(--accent)':'var(--text3)'"
+          onfocus="this.style.borderColor='var(--accent)'"
+          onblur="this.style.borderColor='var(--border)'">${c.notes||''}</textarea>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Summary averages
+  const withPrice = comps.filter(c => c.price);
+  const withCap = comps.filter(c => c.capRate);
+  const withUnits = comps.filter(c => c.price && c.units);
+  const avgPrice = withPrice.length ? withPrice.reduce((s,c) => s + parseFloat(c.price.replace(/,/g,'')), 0) / withPrice.length : null;
+  const avgCap = withCap.length ? withCap.reduce((s,c) => s + parseFloat(c.capRate), 0) / withCap.length : null;
+  const avgPPU = withUnits.length ? withUnits.reduce((s,c) => s + parseFloat(c.price.replace(/,/g,''))/parseFloat(c.units), 0) / withUnits.length : null;
+
+  // Subject deal values for comparison
+  const subjectPrice = parseFloat(document.getElementById('prop-price')?.value?.replace(/,/g,'')) || 0;
+  const subjectUnits = units.length || 0;
+  const subjectPPU = subjectPrice && subjectUnits ? subjectPrice / subjectUnits : null;
+
+  summary.style.display = 'block';
+  summary.innerHTML = `
+    <div style="padding:12px 16px;background:var(--surface2);border-top:2px solid var(--border);">
+      <div style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:10px;">Comp Averages vs Subject</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Avg Cap Rate</div>
+          <div style="font-family:var(--display);font-weight:800;font-size:18px;color:var(--accent2);">${avgCap ? avgCap.toFixed(2)+'%' : '—'}</div>
+          ${subjectPrice ? `<div style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:2px;">Subject: <span style="color:var(--accent);">${avgCap ? ((parseFloat(document.getElementById('prop-price')?.value?.replace(/,/g,''))||0) > 0 ? '—' : '—') : '—'}</span></div>` : ''}
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Avg Sale Price</div>
+          <div style="font-family:var(--display);font-weight:800;font-size:18px;color:var(--accent);">${avgPrice ? '$'+Math.round(avgPrice).toLocaleString() : '—'}</div>
+          ${subjectPrice ? `<div style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:2px;">Subject: <span style="color:var(--accent);">$${subjectPrice.toLocaleString()}</span></div>` : ''}
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Avg $/Unit</div>
+          <div style="font-family:var(--display);font-weight:800;font-size:18px;color:var(--accent3);">${avgPPU ? '$'+Math.round(avgPPU).toLocaleString() : '—'}</div>
+          ${subjectPPU ? `<div style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:2px;">Subject: <span style="color:var(--accent3);">$${Math.round(subjectPPU).toLocaleString()}</span></div>` : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
 // ── SAVE / LOAD DEAL ──
 function saveDeal() {
   const addr = document.getElementById('prop-address')?.value || 'deal';
@@ -2276,6 +2557,8 @@ function saveDeal() {
       pct:      document.getElementById('global-yr2-pct')?.value || '5',
     },
     analysisDate: document.getElementById('analysis-date')?.value || '',
+    comps: comps.map(c => ({ address: c.address, units: c.units, price: c.price, capRate: c.capRate, bldgSF: c.bldgSF||'', landSF: c.landSF||'', notes: c.notes||'' })),
+    notes: document.getElementById('deal-notes')?.value || '',
   };
 
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -2360,6 +2643,19 @@ function loadDeal(event) {
         const adEl = document.getElementById('analysis-date');
         if (adEl) adEl.value = d.analysisDate;
       }
+
+      // Comps
+      comps = [];
+      compId = 0;
+      if (d.comps) {
+        d.comps.forEach(c => {
+          comps.push({ id: ++compId, address: c.address||'', units: c.units||'', price: c.price||'', capRate: c.capRate||'', bldgSF: c.bldgSF||'', landSF: c.landSF||'', notes: c.notes||'' });
+        });
+      }
+      renderComps();
+      // Notes
+      const notesEl = document.getElementById('deal-notes');
+      if (notesEl && d.notes) notesEl.value = d.notes;
 
       renderDefaultExpenses();
       renderUnits();
