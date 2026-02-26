@@ -400,6 +400,27 @@
   }
   .unit-remove:hover { color: var(--danger); }
 
+  .units-totals-row {
+    display: grid;
+    grid-template-columns: 24px 72px 82px 72px 72px 22px;
+    gap: 5px;
+    padding: 10px 12px;
+    background: var(--surface2);
+    border-top: 1px solid var(--border);
+    align-items: center;
+  }
+  .units-totals-row span {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  @media (min-width: 768px) {
+    .units-totals-row {
+      grid-template-columns: 28px 1fr 1fr 1fr 1fr 24px !important;
+      gap: 10px !important;
+      padding: 10px 24px !important;
+    }
+  }
   .add-btn {
     width: 100%;
     padding: 12px;
@@ -993,6 +1014,7 @@
         <span></span>
       </div>
       <div id="units-list"></div>
+      <div id="units-totals"></div>
       <button class="add-btn" onclick="addUnit()">＋ Add Unit</button>
     </div>
 
@@ -1365,6 +1387,44 @@ function renderUnits() {
     </div>
   `}).join('');
   document.getElementById('unit-count-badge').textContent = `${units.length} unit${units.length !== 1 ? 's' : ''}`;
+
+  renderUnitTotals();
+}
+
+function renderUnitTotals() {
+  const totalsEl = document.getElementById('units-totals');
+  if (!totalsEl) return;
+  if (units.length === 0) { totalsEl.innerHTML = ''; return; }
+  const applyAll = document.getElementById('apply-all-yr2')?.checked;
+  const applyYr3 = document.getElementById('apply-all-yr3')?.checked;
+  const globalPct = parseFloat(document.getElementById('global-yr2-pct')?.value) || 5;
+  const totalRent = units.reduce((s, u) => s + (parseFloat(u.rent) || 0), 0);
+  const totalRent2 = units.reduce((s, u) => {
+    const yr2 = applyAll && u.rent ? Math.round(parseFloat(u.rent) * (1 + globalPct/100)) : (parseFloat(u.rent2) || 0);
+    return s + yr2;
+  }, 0);
+  const totalRent3 = units.reduce((s, u) => {
+    const yr2base = applyAll && u.rent ? Math.round(parseFloat(u.rent) * (1 + globalPct/100)) : (parseFloat(u.rent2) || parseFloat(u.rent) || 0);
+    const yr3 = applyYr3 && yr2base ? Math.round(yr2base * (1 + globalPct/100)) : (parseFloat(u.rent3) || 0);
+    return s + yr3;
+  }, 0);
+  totalsEl.innerHTML = `
+    <div class="units-totals-row">
+      <span style="color:var(--text3);">#</span>
+      <span style="color:var(--text3);">TOTAL</span>
+      <span style="color:var(--text);">$${totalRent.toLocaleString()}<span style="font-size:9px;color:var(--text3);">/mo</span></span>
+      <span style="color:var(--accent2);">${totalRent2 ? '$'+totalRent2.toLocaleString() : '—'}</span>
+      <span style="color:var(--accent3);">${totalRent3 ? '$'+totalRent3.toLocaleString() : '—'}</span>
+      <span></span>
+    </div>
+    <div style="padding:6px 12px 8px;display:grid;grid-template-columns:24px 72px 82px 72px 72px 22px;gap:5px;background:var(--surface2);" class="units-annual-row">
+      <span></span>
+      <span style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:0.06em;text-transform:uppercase;">ANNUAL</span>
+      <span style="font-family:var(--mono);font-size:10px;color:var(--text3);">$${(totalRent*12).toLocaleString()}</span>
+      <span style="font-family:var(--mono);font-size:10px;color:rgba(56,217,169,0.6);">${totalRent2 ? '$'+(totalRent2*12).toLocaleString() : ''}</span>
+      <span style="font-family:var(--mono);font-size:10px;color:rgba(247,201,72,0.6);">${totalRent3 ? '$'+(totalRent3*12).toLocaleString() : ''}</span>
+      <span></span>
+    </div>`;
 }
 
 // ── YEAR 2 APPLY ALL ──
@@ -1592,6 +1652,7 @@ function calculate() {
   }
 
   // Render results
+  renderUnitTotals();
   renderResults({
     price, grossMonthly, grossAnnual, vacancyLoss, effectiveGross,
     totalExpenses, noi, capRate, grm, expenseRatio,
