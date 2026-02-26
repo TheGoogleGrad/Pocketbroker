@@ -1203,6 +1203,10 @@
   <button class="share-btn" onclick="copySnapshot()" style="padding:14px 10px;font-size:11px;">⬡ Copy</button>
   <button class="share-btn" onclick="exportExcel()" style="padding:14px 10px;font-size:11px;border-color:rgba(56,217,169,0.4);color:var(--accent2);">⬇ XLS</button>
   <button class="share-btn" onclick="exportPDF()" style="padding:14px 10px;font-size:11px;border-color:rgba(247,201,72,0.4);color:var(--accent3);">⬇ PDF</button>
+  <button class="share-btn" onclick="saveDeal()" style="padding:14px 10px;font-size:11px;border-color:rgba(79,142,247,0.4);color:var(--accent);">💾 Save</button>
+  <label class="share-btn" style="padding:14px 10px;font-size:11px;border-color:rgba(56,217,169,0.4);color:var(--accent2);cursor:pointer;">
+    📂 Load<input type="file" accept=".json" onchange="loadDeal(event)" style="display:none;" />
+  </label>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -2228,6 +2232,154 @@ function exportPDF() {
   win.document.write(html);
   win.document.close();
   setTimeout(() => win.print(), 800);
+}
+
+// ── SAVE / LOAD DEAL ──
+function saveDeal() {
+  const addr = document.getElementById('prop-address')?.value || 'deal';
+  const city = document.getElementById('prop-city')?.value || '';
+  const slug = [addr, city].filter(Boolean).join('-').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  const filename = `pocketbroker_${slug}_${new Date().toISOString().slice(0,10)}.json`;
+
+  const data = {
+    version: 1,
+    savedAt: new Date().toISOString(),
+    property: {
+      address: document.getElementById('prop-address')?.value || '',
+      city:    document.getElementById('prop-city')?.value || '',
+      zip:     document.getElementById('prop-zip')?.value || '',
+      state:   document.getElementById('prop-state')?.value || '',
+      year:    document.getElementById('prop-year')?.value || '',
+      bldgSF:  document.getElementById('prop-bldg-sf')?.value || '',
+      landSF:  document.getElementById('prop-land-sf')?.value || '',
+      price:   document.getElementById('prop-price')?.value || '',
+    },
+    units: units.map(u => ({ type: u.type, rent: u.rent, rent2: u.rent2, rent3: u.rent3 })),
+    income: {
+      vacancy:  document.getElementById('vacancy-rate')?.value || '',
+      laundry:  document.getElementById('laundry-income')?.value || '',
+      parking:  document.getElementById('parking-income')?.value || '',
+    },
+    expenses: {
+      defaults: defaultExpenses.map(e => ({ id: e.id, value: e.value, on: e.on })),
+      custom: customExpenses.map(e => ({ name: e.name, value: e.value })),
+    },
+    debt: {
+      enabled:  debtEnabled,
+      downPct:  document.getElementById('down-pct')?.value || '',
+      intRate:  document.getElementById('int-rate')?.value || '',
+      amort:    document.getElementById('amort-years')?.value || '',
+    },
+    rentRoll: {
+      applyYr2: document.getElementById('apply-all-yr2')?.checked || false,
+      applyYr3: document.getElementById('apply-all-yr3')?.checked || false,
+      pct:      document.getElementById('global-yr2-pct')?.value || '5',
+    },
+    analysisDate: document.getElementById('analysis-date')?.value || '',
+  };
+
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function loadDeal(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const d = JSON.parse(e.target.result);
+      if (!d.version) throw new Error('Invalid file');
+
+      // Property
+      if (d.property) {
+        document.getElementById('prop-address').value = d.property.address || '';
+        document.getElementById('prop-city').value    = d.property.city || '';
+        document.getElementById('prop-zip').value     = d.property.zip || '';
+        document.getElementById('prop-state').value   = d.property.state || '';
+        document.getElementById('prop-year').value    = d.property.year || '';
+        document.getElementById('prop-bldg-sf').value = d.property.bldgSF || '';
+        document.getElementById('prop-land-sf').value = d.property.landSF || '';
+        document.getElementById('prop-price').value   = d.property.price || '';
+      }
+
+      // Units
+      units = [];
+      unitId = 0;
+      if (d.units) {
+        d.units.forEach(u => {
+          units.push({ id: ++unitId, type: u.type || '', rent: u.rent || '', rent2: u.rent2 || '', rent3: u.rent3 || '' });
+        });
+      }
+
+      // Income
+      if (d.income) {
+        document.getElementById('vacancy-rate').value  = d.income.vacancy || '5';
+        document.getElementById('laundry-income').value = d.income.laundry || '0';
+        document.getElementById('parking-income').value = d.income.parking || '0';
+      }
+
+      // Expenses
+      if (d.expenses?.defaults) {
+        d.expenses.defaults.forEach(saved => {
+          const exp = defaultExpenses.find(e => e.id === saved.id);
+          if (exp) { exp.value = saved.value; exp.on = saved.on; }
+        });
+      }
+      customExpenses = [];
+      customId = 0;
+      if (d.expenses?.custom) {
+        d.expenses.custom.forEach(c => {
+          customExpenses.push({ id: ++customId, name: c.name, value: c.value });
+        });
+      }
+
+      // Debt
+      if (d.debt) {
+        debtEnabled = d.debt.enabled;
+        document.getElementById('down-pct').value   = d.debt.downPct || '25';
+        document.getElementById('int-rate').value   = d.debt.intRate || '6.5';
+        document.getElementById('amort-years').value = d.debt.amort || '30';
+        renderDebtToggle();
+      }
+
+      // Rent roll checkboxes
+      if (d.rentRoll) {
+        document.getElementById('apply-all-yr2').checked = d.rentRoll.applyYr2;
+        document.getElementById('apply-all-yr3').checked = d.rentRoll.applyYr3;
+        document.getElementById('global-yr2-pct').value  = d.rentRoll.pct || '5';
+      }
+
+      // Analysis date
+      if (d.analysisDate) {
+        const adEl = document.getElementById('analysis-date');
+        if (adEl) adEl.value = d.analysisDate;
+      }
+
+      renderDefaultExpenses();
+      renderUnits();
+      calculate();
+
+      // Flash confirmation
+      const btn = event.target.closest('label');
+      if (btn) {
+        const orig = btn.style.color;
+        btn.style.color = 'var(--accent2)';
+        btn.childNodes[0].textContent = '✓ Loaded';
+        setTimeout(() => { btn.childNodes[0].textContent = '📂 Load'; btn.style.color = orig; }, 1500);
+      }
+      // Reset file input so same file can be reloaded
+      event.target.value = '';
+    } catch(err) {
+      alert('Could not load file. Make sure it\'s a valid PocketBroker JSON.');
+    }
+  };
+  reader.readAsText(file);
 }
 
 function copySnapshot() {
