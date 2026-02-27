@@ -2412,19 +2412,19 @@ function renderComps() {
           <input type="number" placeholder="Units" value="${c.units}"
             style="background:#ffffff;border:1px solid var(--border);border-radius:6px;padding:6px 4px;
                    font-family:var(--mono);font-size:11px;color:#1a1f2e;outline:none;width:100%;text-align:center;"
-            oninput="comps[${idx}].units=this.value;renderComps()" />
+            oninput="comps[${idx}].units=this.value;updateCompCalcs(${c.id})" />
           <div style="position:relative;">
             <span style="position:absolute;left:6px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:10px;color:var(--text3);">$</span>
             <input type="text" placeholder="1,200,000" value="${c.price}"
               style="background:#ffffff;border:1px solid rgba(79,142,247,0.3);border-radius:6px;padding:6px 4px 6px 14px;
                      font-family:var(--mono);font-size:11px;color:#1a1f2e;outline:none;width:100%;"
-              oninput="comps[${idx}].price=this.value;renderComps()" />
+              oninput="const r=this.value.replace(/[^0-9]/g,'');this.value=r?parseInt(r).toLocaleString():'';comps[${idx}].price=this.value;updateCompCalcs(${c.id})" />
           </div>
           <div style="position:relative;">
             <input type="number" placeholder="5.0" step="0.01" value="${c.capRate}"
               style="background:#ffffff;border:1px solid rgba(56,217,169,0.3);border-radius:6px;padding:6px 14px 6px 6px;
                      font-family:var(--mono);font-size:11px;color:#1a1f2e;outline:none;width:100%;text-align:center;"
-              oninput="comps[${idx}].capRate=this.value;renderComps()" />
+              oninput="comps[${idx}].capRate=this.value;renderCompSummary()" />
             <span style="position:absolute;right:4px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:9px;color:var(--text3);">%</span>
           </div>
           <button onclick="removeComp(${c.id})" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:0;line-height:1;">×</button>
