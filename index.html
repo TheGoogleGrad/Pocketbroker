@@ -1339,7 +1339,7 @@ let activeTab = 'income';
 function switchTab(tab) {
   activeTab = tab;
   document.querySelectorAll('.tab').forEach((t,i) => {
-    t.classList.toggle('active', ['income','expenses','debt','results'][i] === tab);
+    t.classList.toggle('active', ['income','expenses','debt','comps','results'][i] === tab);
   });
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + tab).classList.add('active');
